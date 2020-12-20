@@ -14,6 +14,10 @@ class Image(models.Model):
     description = models.TextField(blank=True)
     created = models.DateField(auto_now_add=True, db_index=True)
     users_like = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='images_liked', blank=True)
+    # add this field and use signals to update this field to avoid expensive queries which will deter performance
+    # ordreing an annotaion query is expensive
+    # updatethis field according to the total number of users_like in the manyToMany table
+    total_likes = models.PositiveIntegerField(db_index=True, default=0)
 
 
     def __str__(self):
