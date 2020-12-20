@@ -6,6 +6,7 @@ from .models import Image
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from actions.utils import create_action
 
 # my custom decorator
 from common.decorators import ajax_required
@@ -48,6 +49,8 @@ def image_create(request):
             # assign auth user to the bookmarked image
             new_item.user = request.user
             new_item.save()
+            # create an action or activity stream for this action
+            create_action(request.user, "bookmarked image", new_item)
 
             messages.success(request, 'Image added successfully')
 
@@ -75,6 +78,7 @@ def image_like(request):
             if action == "like":
                 # create many to many relationship for user and image
                 image.users_like.add(request.user)
+                create_action(request.user, "likes", image)
             else:
                 # delete many to many relationship for user and image
                 image.users_like.remove(request.user)

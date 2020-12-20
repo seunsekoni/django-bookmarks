@@ -1,0 +1,25 @@
+import datetime
+
+from django.contrib.contenttypes.models import ContentType
+from .models import Action
+from django.utils import timezone
+
+def create_action(user, verb, target=None):
+    # avoid duplicate actions being created repeatedly by the same user
+    now = timezone.now()
+    last_minute = now - datetime.timedelta(seconds=60)
+    similar_actions = Action.objects.filter(user_id=user.id, verb=verb, created=last_minute)
+
+# if target was provided
+    if target:
+        target_ct = ContentType.objects.get_for_model(target)
+        similar_actions = similar_actions.filter(content_type=target_ct, object_id=target.id)
+
+    if not similar_actions:
+        # no existing actions found
+        action = Action(user=user, verb=verb, target=target)
+        action.save()
+        return True
+    return False
+
+

@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponse, JsonResponse
@@ -10,8 +12,32 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from common.decorators import ajax_required
 from .models import Contact
+from actions.utils import create_action
+from actions.models import Action
+
 
 # Create your views here.
+@login_required
+def dashboard(request):
+    # Display all actions by default
+    actions = Action.objects.exclude(user=request.user)
+    # print('Actions: ' +str(actions))
+
+    # fetch authenticated user's following id
+    following_ids = request.user.following.values_list('id', flat=True)
+    # print('Following Ids: ' +str(following_ids))
+    if following_ids:
+        # If user is following others, retrieve only their actions
+        actions = actions.filter(user_id__in=following_ids)
+        actions = actions[:10]
+        # select_related retrieves relationship for only one to one/many relationship
+        # prefetch-related retrieves relationship for many to many relationship
+        actions = actions.select_related('user', 'user__profile').prefetch_related('target')[:10]
+
+        # print('Last actions' + str(actions)) 
+
+    return render(request,'account/dashboard.html', {'section': 'dashboard', 'actions': actions})
+
 @ajax_required
 @login_required
 @require_POST
@@ -24,13 +50,15 @@ def user_follow(request):
         if action == "follow":
             # create the relationship
             Contact.objects.get_or_create(user_from=user_following, user_to=user)
+            # create actions or activity stream
+            create_action(user_following, 'is following', user)
         else:
             # delete the relationship
             Contact.objects.filter(user_from=user_following, user_to=user).delete()
         return JsonResponse({'status':'ok'})
     except User.DoesNotExist:
         return JsonResponse({'error':'error'})
-    return JsonResponse({'error':'error'})
+    # return JsonResponse({'error':'error'})
 
 def user_login(request):
     if request.method == "POST":
@@ -54,11 +82,11 @@ def user_login(request):
     return render(request, 'account/login.html', {'form': form})
 
 
-@login_required
-def dashboard(request):
-    return render(request,
-                    'account/dashboard.html',
-                    {'section': 'dashboard'})
+# @login_required
+# def dashboard(request):
+#     return render(request,
+#                     'account/dashboard.html',
+#                     {'section': 'dashboard'})
 
 def register(request):
     if request.method == 'POST':
@@ -74,6 +102,8 @@ def register(request):
             new_user.save()
             # create an empty profile for the user
             Profile.objects.create(user=new_user)
+            # create activity feed
+            create_action(new_user, 'has created an account')
 
 
             return render(request, 'account/register_done.html', {'new_user': new_user})

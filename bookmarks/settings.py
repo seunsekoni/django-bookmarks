@@ -154,7 +154,7 @@ AUTH_PASSWORD_VALIDATORS = [
 #     },
 #     'loggers': {
 #         'django': {
-#             'handlers': ['file'],
+#             'handlers': ['console', 'file'],
 #             'level': 'DEBUG',
 #             'propagate': True,
 #         },
