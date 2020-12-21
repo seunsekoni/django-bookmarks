@@ -7,9 +7,16 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from actions.utils import create_action
-
 # my custom decorator
 from common.decorators import ajax_required
+
+import redis
+from django.conf import settings
+
+# connect to redis
+r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
+
+
 
 def image_list(request):
     images = Image.objects.all()
@@ -63,7 +70,9 @@ def image_create(request):
 
 def image_detail(request, id, slug):
     image = get_object_or_404(Image, id=id, slug=slug)
-    return render(request, 'images/image/detail.html', {'section': 'images', 'image': image})
+    # increment total image views by 1 on redis DB
+    total_views = r.incr(f'image:{image.id}:views')
+    return render(request, 'images/image/detail.html', {'section': 'images', 'image': image, 'total_views':total_views})
 
 @ajax_required
 @require_POST
@@ -87,6 +96,3 @@ def image_like(request):
         except:
             pass
     return JsonResponse({'error': 'error'})
-
-
-

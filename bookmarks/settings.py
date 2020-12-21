@@ -199,3 +199,9 @@ SITE_ID = env('SITE_ID')
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR /'media/'
+
+REDIS_HOST = env('REDIS_HOST')
+
+REDIS_PORT = env('REDIS_PORT')
+
+REDIS_DB = env('REDIS_DB')
